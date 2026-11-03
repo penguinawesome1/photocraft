@@ -554,6 +554,7 @@ pub(crate) fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let collapsed = collapsed_members(app, &layout);
     let layout = presented(layout, &collapsed);
     let fillers = fillers(&layout);
+    let floating: std::collections::HashSet<String> = layout.floating.iter().flat_map(|window| window.panels().cloned()).collect();
     let reveal = app.ui.docking_reveal.take();
     let t = crate::theme::Tokens::get(ui.ctx());
     let locked = app.session.prefs().workspace_locked;
@@ -608,7 +609,7 @@ pub(crate) fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 craft_ui::docking::PanelLimits { min: egui::vec2(220.0, height), ..Default::default() }
             }
         },
-        &mut PanelContent { app, collapsed: &collapsed, fillers: &fillers, card: &card, strip, commands: &mut commands },
+        &mut PanelContent { app, collapsed: &collapsed, fillers: &fillers, floating: &floating, card: &card, strip, commands: &mut commands },
     );
     if let Some(error) = output.error.take() {
         app.ui.status = error.to_string();
@@ -823,7 +824,7 @@ fn fillers(layout: &Layout<String>) -> std::collections::HashSet<String> {
     out
 }
 
-fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: &str) {
+fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: &str, floating: bool) {
     let Some((_, label, group)) = PANELS.iter().find(|p| p.0 == id) else { return };
     let pro = crate::theme::Tokens::get(ui.ctx()).pro;
     let Some(tab) = group.tabs(pro).iter().position(|name| name == label) else { return };
@@ -832,7 +833,7 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: &str) {
     let shown = std::mem::replace(group.tab_mut(&mut app.ui.dock_tabs), tab);
     if group.scrolls_itself(tab) {
         ui.set_min_height(ui.available_height().max(0.0));
-        crate::panels::dock_body(app, ui, *group, tab);
+        crate::panels::dock_body_with_context(app, ui, *group, tab, floating);
     } else {
         crate::panels::offer_color_field_fill(ui, pro, *group, tab);
         // No scroll fade: it darkens real colours, swatches and previews at the edge (#2726).
@@ -840,7 +841,7 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: &str) {
         egui::ScrollArea::vertical()
             .id_salt(("shared-panel-body", id))
             .auto_shrink([false, false])
-            .show(ui, |ui| crate::panels::dock_body(app, ui, *group, tab));
+            .show(ui, |ui| crate::panels::dock_body_with_context(app, ui, *group, tab, floating));
     }
     let selected = *group.tab_mut(&mut app.ui.dock_tabs);
     if selected == tab {
@@ -1169,6 +1170,7 @@ struct PanelContent<'a> {
     app: &'a mut PhotocraftApp,
     collapsed: &'a std::collections::HashSet<String>,
     fillers: &'a std::collections::HashSet<String>,
+    floating: &'a std::collections::HashSet<String>,
     /// The panels of the Studio themes' Properties card, which stays over the canvas.
     card: &'a std::collections::HashSet<String>,
     /// The tab strip's height, which the native groups' heights include.
@@ -1227,7 +1229,7 @@ impl craft_ui::docking::DockContent<String> for PanelContent<'_> {
         if !self.collapsed.contains(id) && ui.available_width() >= 200.0 {
             let pro = crate::theme::Tokens::get(ui.ctx()).pro;
             ui.spacing_mut().item_spacing.y = if pro { 0.0 } else { 6.0 };
-            egui::Frame::NONE.inner_margin(crate::widgets::body_margin(pro)).show(ui, |ui| body(self.app, ui, id));
+            egui::Frame::NONE.inner_margin(crate::widgets::body_margin(pro)).show(ui, |ui| body(self.app, ui, id, self.floating.contains(id)));
         }
     }
     fn dock_heights(&self, id: &String) -> Option<DockHeights> {

@@ -71,6 +71,7 @@ pub(crate) use options_bar::{kerning_label, parse_kerning};
 #[cfg(test)]
 use overlay::CARET_STROKES;
 pub use overlay::draw_overlay;
+pub(crate) use panel::floating_character_panel;
 #[cfg(test)]
 pub(crate) use panel::{OPENTYPE_BUTTONS, toggle_opentype};
 pub use panel::{character_panel, type_properties};

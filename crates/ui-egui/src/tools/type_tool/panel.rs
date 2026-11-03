@@ -200,20 +200,28 @@ fn metric_field(
 
 /// Properties panel sections for a type layer: Character, Paragraph and Type Options (#155).
 pub fn type_properties(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
-    type_sections(app, ui, true, true, false);
+    type_sections(app, ui, true, true, false, false);
     type_options(app, ui);
 }
 
 /// Window › Character / Paragraph (#150): the same controls as Properties, in their own dock
 /// group. Without a type target they edit the defaults for the next Type-tool layer.
 pub fn character_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool) {
-    type_sections(app, ui, !paragraph, paragraph, true);
+    character_panel_with_context(app, ui, paragraph, false);
+}
+
+pub(crate) fn floating_character_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool) {
+    character_panel_with_context(app, ui, paragraph, true);
+}
+
+fn character_panel_with_context(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool, floating: bool) {
+    type_sections(app, ui, !paragraph, paragraph, true, floating);
 }
 
 /// The Character and/or Paragraph sections, with the shared collapsible headers and fields that
 /// fill the panel width (#155).
-fn type_sections(app: &mut PhotocraftApp, ui: &mut egui::Ui, character: bool, paragraph: bool, show_defaults: bool) {
-    use crate::props_layout::{COL_GAP, LABEL_GAP, LABEL_W, field_width, section};
+fn type_sections(app: &mut PhotocraftApp, ui: &mut egui::Ui, character: bool, paragraph: bool, show_defaults: bool, floating: bool) {
+    use crate::props_layout::{COL_GAP, LABEL_GAP, LABEL_W, field_width, section as titled_section};
     use crate::theme::ROW_GAP;
     let Some((c, para)) = styles_at(app).or_else(|| show_defaults.then(|| default_styles(app))) else { return };
     // Preferences ▸ Units & Rulers ▸ Type, as in the options bar: the model keeps points.
@@ -227,6 +235,7 @@ fn type_sections(app: &mut PhotocraftApp, ui: &mut egui::Ui, character: bool, pa
         });
         ui.add_space(ROW_GAP);
     };
+    let section = |ui: &mut egui::Ui, id, title| floating || titled_section(ui, id, title);
     if character && section(ui, "character", tl!("Character")) {
         let full = ui.available_width();
         let w = field_width(full, 2, LABEL_W);
