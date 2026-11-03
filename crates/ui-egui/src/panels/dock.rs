@@ -94,8 +94,7 @@ pub fn request_dock_width(ctx: &egui::Context, w: f32) {
     ctx.data_mut(|d| d.insert_temp(dock_width_id(), w));
 }
 
-/// One dock group's tab content; `panel_docking` bounds it and scrolls it when it's taller.
-pub(crate) fn dock_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, group: crate::dock::Group, tab: usize) {
+pub(crate) fn dock_body_with_context(app: &mut PhotocraftApp, ui: &mut egui::Ui, group: crate::dock::Group, tab: usize, floating: bool) {
     use crate::dock::Group;
     let pro = Tokens::get(ui.ctx()).pro;
     match (group, tab) {
@@ -107,6 +106,7 @@ pub(crate) fn dock_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, group: crate
         (Group::Color, _) => crate::swatches_ui::panel(app, ui),
         (Group::Properties, 0) => properties_body(app, ui),
         (Group::Properties, _) => adjustments_grid(app, ui),
+        (Group::Character, tab) if floating => crate::type_tool::floating_character_panel(app, ui, tab == 1),
         (Group::Character, tab) => crate::type_tool::character_panel(app, ui, tab == 1),
         (Group::Navigator, 0) => navigator(app, ui),
         (Group::Navigator, 1) => crate::histogram_panel::show(app, ui),
@@ -119,4 +119,9 @@ pub(crate) fn dock_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, group: crate
         (Group::Layers, _) => crate::vector_ui::paths_panel(app, ui),
         (Group::Brushes, _) => crate::brushes_tab::show(app, ui),
     }
+}
+
+#[cfg(test)]
+pub(crate) fn dock_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, group: crate::dock::Group, tab: usize) {
+    dock_body_with_context(app, ui, group, tab, false);
 }

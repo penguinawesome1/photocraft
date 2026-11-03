@@ -65,6 +65,24 @@ fn docking_a_floating_group_docks_all_of_its_panels() {
 }
 
 #[test]
+fn floating_character_and_paragraph_panels_hide_only_their_duplicate_section_title() {
+    for (panel, duplicate) in [("character", "Character"), ("paragraph", "Paragraph")] {
+        let mut docked = app();
+        docked.run("window.panel.activate", json!({"panel":panel})).unwrap();
+        let h = harness(docked, vec2(1200.0, 800.0));
+        let titles: Vec<String> = crate::props_layout::sections_drawn(&h.ctx).into_iter().map(|(title, _)| title).collect();
+        assert!(titles.iter().any(|title| title == duplicate), "docked {panel}: {titles:?}");
+
+        let mut app = app();
+        app.run("window.panel.float", json!({"panel":panel})).unwrap();
+        let h = harness(app, vec2(1200.0, 800.0));
+        let titles: Vec<String> = crate::props_layout::sections_drawn(&h.ctx).into_iter().map(|(title, _)| title).collect();
+        assert!(!titles.iter().any(|title| title == duplicate), "{panel}: {titles:?}");
+        assert!(!titles.iter().any(String::is_empty), "{panel}: the floating panel should not draw a section header row: {titles:?}");
+    }
+}
+
+#[test]
 fn floating_panel_rail_toggle_closes_the_float_window() {
     let mut app = app();
     app.run("window.panel.float", json!({"panel":"properties","x":50,"y":70,"width":330,"height":410})).unwrap();
